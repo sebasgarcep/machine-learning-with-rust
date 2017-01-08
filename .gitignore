@@ -1,1 +1,6 @@
 target
+data
+cifar
+mnist
+*.pyc
+*.lock
