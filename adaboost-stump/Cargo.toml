@@ -1,0 +1,10 @@
+[package]
+authors = ["Sebastian Garrido <sebasgarcep@gmail.com>"]
+name = "adaboost-stump"
+version = "0.1.0"
+
+[dependencies]
+gdk-pixbuf = "0.1.3"
+glib = "0.1.3"
+gtk = "0.1.3"
+rscam = "0.5.3"
