@@ -3,6 +3,7 @@ name = "adaboost-stump"
 version = "0.1.0"
 dependencies = [
  "image 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston_window 0.69.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rscam 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rulinalg 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",

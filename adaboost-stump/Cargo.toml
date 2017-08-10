@@ -9,6 +9,7 @@ path = "src/playground.rs"
 
 [dependencies]
 image = "0.15.0"
+lazy_static = "0.2.8"
 piston_window = "0.69.0"
 rscam = "0.5.3"
 rulinalg = "0.4.2"
