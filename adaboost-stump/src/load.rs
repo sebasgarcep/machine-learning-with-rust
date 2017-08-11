@@ -1,6 +1,5 @@
-extern crate image;
-
 use std::fs;
+use rand::{thread_rng, Rng};
 use shared::{DataPoint, ImageData, IntegralImage};
 use rulinalg::matrix::{BaseMatrix, Matrix};
 use image::{DynamicImage, ImageBuffer, Pixel, Rgba};
@@ -42,41 +41,49 @@ fn get_integral_image(image: &ImageData) -> IntegralImage {
             }
 
             let top_term = if i > 1 {
-                let top_index = [(i - 2) as usize, (j - 1) as usize];
+                let top_index = [(i - 1) as usize, j as usize];
                 mat[top_index]
             } else {
                 0.0
             };
 
             let left_term = if j > 1 {
-                let left_index = [(i - 1) as usize, (j - 2) as usize];
+                let left_index = [i as usize, (j - 1) as usize];
                 mat[left_index]
             } else {
                 0.0
             };
 
             let diag_term = if i > 1 && j > 1 {
-                let diag_index = [(i - 2) as usize, (j - 2) as usize];
+                let diag_index = [(i - 1) as usize, (j - 1) as usize];
                 mat[diag_index]
             } else {
                 0.0
             };
 
-            let index = [(i - 1) as usize, (j - 1) as usize];
-            mat[index] = image[index] + top_term + left_term - diag_term;
+            let img_index = [(i - 1) as usize, (j - 1) as usize];
+            let index = [i as usize, j as usize];
+            mat[index] = image[img_index] + top_term + left_term - diag_term;
         }
     }
 
     mat
 }
 
-pub fn get_training_data() -> Vec<DataPoint> {
-    let faces_paths = fs::read_dir("./data/training/faces").unwrap().map(|path| (path, 1.0));
-    let non_faces_paths =
-        fs::read_dir("./data/training/non-faces").unwrap().map(|path| (path, -1.0));
-    let paths = faces_paths.chain(non_faces_paths);
+pub fn get_training_data() -> (Vec<DataPoint>, usize, usize) {
+    let faces_paths: Vec<_> =
+        fs::read_dir("./data/training/faces").unwrap().map(|path| (path, 1.0)).collect();
+    let num_faces = faces_paths.len();
 
-    paths.map(|(path, label)| {
+    let non_faces_paths: Vec<_> =
+        fs::read_dir("./data/training/non-faces").unwrap().map(|path| (path, -1.0)).collect();
+    let num_non_faces = non_faces_paths.len();
+
+    let paths = faces_paths.into_iter().chain(non_faces_paths.into_iter());
+
+    let mut training_data: Vec<DataPoint> = paths.map(|(path, label)| {
+            extern crate image;
+
             let img_path = path.unwrap().path();
 
             let rgba_image = match image::open(img_path).unwrap() {
@@ -89,10 +96,18 @@ pub fn get_training_data() -> Vec<DataPoint> {
             let integral_image = get_integral_image(&image_data);
 
             DataPoint {
-                image_data,
-                integral_image,
-                label,
+                image_data: image_data,
+                integral_image: integral_image,
+                label: label,
             }
         })
-        .collect()
+        .collect();
+
+    {
+
+        let slice = training_data.as_mut_slice();
+        thread_rng().shuffle(slice);
+    }
+
+    (training_data, num_faces, num_non_faces)
 }
