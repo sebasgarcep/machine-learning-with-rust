@@ -3,10 +3,6 @@ authors = ["Sebastian Garrido <sebasgarcep@gmail.com>"]
 name = "adaboost-stump"
 version = "0.1.0"
 
-[[bin]]
-name = "playground"
-path = "src/playground.rs"
-
 [dependencies]
 image = "0.15.0"
 lazy_static = "0.2.8"
