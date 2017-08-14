@@ -1,7 +1,7 @@
 use integral_image::IntegralImage;
-use shared::{DataPoint, MIN_FEATURE_HEIGHT, MIN_FEATURE_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH};
+use shared::{MIN_FEATURE_HEIGHT, MIN_FEATURE_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 enum HaarLikeFeatureType {
     TwoVertical, // two columns vertical
     TwoHorizontal, // two columns horizontal
@@ -10,7 +10,7 @@ enum HaarLikeFeatureType {
     FourCheckers, // four squares checkerboard
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct HaarLikeFeature {
     pub threshold: f64,
     pub weight: f64,
@@ -134,28 +134,20 @@ impl HaarLikeFeature {
         upper_left_box - upper_right_box - bottom_left_box + bottom_right_box
     }
 
-    pub fn get_score(&self, data_point: &DataPoint) -> f64 {
+    pub fn get_score(&self, integral_image: &IntegralImage) -> f64 {
         match self.feature_type {
-            HaarLikeFeatureType::TwoVertical => {
-                self.get_score_two_vertical(&data_point.integral_image)
-            }
-            HaarLikeFeatureType::TwoHorizontal => {
-                self.get_score_two_horizontal(&data_point.integral_image)
-            }
+            HaarLikeFeatureType::TwoVertical => self.get_score_two_vertical(&integral_image),
+            HaarLikeFeatureType::TwoHorizontal => self.get_score_two_horizontal(&integral_image),
             HaarLikeFeatureType::ThreeHorizontal => {
-                self.get_score_three_horizontal(&data_point.integral_image)
+                self.get_score_three_horizontal(&integral_image)
             }
-            HaarLikeFeatureType::ThreeVertical => {
-                self.get_score_three_vertical(&data_point.integral_image)
-            }
-            HaarLikeFeatureType::FourCheckers => {
-                self.get_score_four_checkers(&data_point.integral_image)
-            }
+            HaarLikeFeatureType::ThreeVertical => self.get_score_three_vertical(&integral_image),
+            HaarLikeFeatureType::FourCheckers => self.get_score_four_checkers(&integral_image),
         }
     }
 
-    pub fn predict(&self, data_point: &DataPoint) -> f64 {
-        let score = self.get_score(data_point);
+    pub fn predict(&self, integral_image: &IntegralImage) -> f64 {
+        let score = self.get_score(integral_image);
         self.weight * self.polarity * (score - self.threshold).signum()
     }
 }

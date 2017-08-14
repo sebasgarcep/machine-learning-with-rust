@@ -3,6 +3,14 @@ authors = ["Sebastian Garrido <sebasgarcep@gmail.com>"]
 name = "adaboost-stump"
 version = "0.1.0"
 
+[[bin]]
+name = "train"
+path = "src/train.rs"
+
+[[bin]]
+name = "validate"
+path = "src/validate.rs"
+
 [dependencies]
 image = "0.15.0"
 lazy_static = "0.2.8"
@@ -10,3 +18,6 @@ piston_window = "0.69.0"
 rand = "0.3.16"
 rscam = "0.5.3"
 rulinalg = "0.4.2"
+serde = "1.0.11"
+serde_derive = "1.0.11"
+serde_json = "1.0.2"

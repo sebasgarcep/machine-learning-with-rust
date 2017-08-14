@@ -1,5 +1,4 @@
 use std::fs;
-use rand::{thread_rng, Rng};
 use shared::{DataPoint, ImageData};
 use rulinalg::matrix::Matrix;
 use image::{DynamicImage, Pixel, GrayImage};
@@ -76,13 +75,6 @@ pub fn get_training_data() -> (Vec<DataPoint>, usize, usize) {
             }
         })
         .collect();
-
-    // shuffle data to introduce randomness
-    {
-
-        let slice = training_data.as_mut_slice();
-        thread_rng().shuffle(slice);
-    }
 
     (training_data, num_faces, num_non_faces)
 }

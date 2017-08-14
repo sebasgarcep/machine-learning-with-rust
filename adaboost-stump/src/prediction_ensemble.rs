@@ -1,8 +1,9 @@
-use shared::DataPoint;
+use integral_image::IntegralImage;
 use haar_like_feature::HaarLikeFeature;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PredictionEnsemble {
-    ensemble: Vec<HaarLikeFeature>,
+    ensemble: Vec<Vec<HaarLikeFeature>>,
 }
 
 impl PredictionEnsemble {
@@ -10,26 +11,21 @@ impl PredictionEnsemble {
         PredictionEnsemble { ensemble: Vec::new() }
     }
 
-    pub fn print_mistakes(&self, image_collection: &Vec<DataPoint>) {
-        let mut bad_predictions = 0;
-
-        for data_point in image_collection.iter() {
-            let prediction = self.ensemble
-                .iter()
-                .fold(0.0, |acc, ref h| acc + h.predict(&data_point))
+    pub fn predict(&self, integral_image: &IntegralImage) -> bool {
+        for composition in self.ensemble.iter() {
+            let prediction = composition.iter()
+                .fold(0.0, |acc, ref h| acc + h.predict(&integral_image))
                 .signum();
 
-            if prediction * data_point.label < 0.0 {
-                bad_predictions += 1;
+            if prediction < 0.0 {
+                return false;
             }
         }
 
-        println!("Ensemble bad predictions: {} / {}",
-                 bad_predictions,
-                 image_collection.len());
+        return true;
     }
 
-    pub fn push(&mut self, prediction: HaarLikeFeature) {
+    pub fn push(&mut self, prediction: Vec<HaarLikeFeature>) {
         self.ensemble.push(prediction);
     }
 }

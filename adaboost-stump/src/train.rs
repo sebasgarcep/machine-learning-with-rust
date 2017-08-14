@@ -1,6 +1,9 @@
 // FIND v4l2 COMPATIBLE SPECS: v4l2-ctl --list-formats-ext
 // Thanks to https://github.com/oli-obk/camera_capture for most of the code
-
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
 extern crate piston_window;
 extern crate image;
 extern crate rulinalg;
@@ -12,12 +15,15 @@ mod integral_image;
 mod haar_like_feature;
 mod prediction_ensemble;
 
+use std::fs::File;
+use std::io::Write;
+use rand::{thread_rng, Rng};
 use std::iter::Iterator;
 use rulinalg::vector::Vector;
 use load::get_training_data;
 use haar_like_feature::HaarLikeFeature;
 use prediction_ensemble::PredictionEnsemble;
-use shared::{DataPoint, NUM_ROUNDS};
+use shared::DataPoint;
 
 fn weak_learner(feature_collection: &mut Vec<HaarLikeFeature>,
                 image_collection: &Vec<DataPoint>,
@@ -32,7 +38,9 @@ fn weak_learner(feature_collection: &mut Vec<HaarLikeFeature>,
 
         let mut scores: Vec<_> = image_collection.iter()
             .enumerate()
-            .map(|(index, ref data_point)| (index, feature_hypothesis.get_score(&data_point)))
+            .map(|(index, ref data_point)| {
+                (index, feature_hypothesis.get_score(&data_point.integral_image))
+            })
             .collect();
 
         scores.sort_by(|&a, &b| a.partial_cmp(&b).unwrap());
@@ -90,10 +98,12 @@ fn weak_learner(feature_collection: &mut Vec<HaarLikeFeature>,
     feature
 }
 
-fn adaboost(image_collection: &Vec<DataPoint>,
+fn adaboost(num_rounds: usize,
+            mut feature_collection: &mut Vec<HaarLikeFeature>,
+            image_collection: &Vec<DataPoint>,
             num_faces: usize,
             num_non_faces: usize)
-            -> PredictionEnsemble {
+            -> Vec<HaarLikeFeature> {
     let mut weights: Vector<f64> = image_collection.iter()
         .map(|data_point| {
             if data_point.label > 0.0 {
@@ -104,12 +114,9 @@ fn adaboost(image_collection: &Vec<DataPoint>,
         })
         .collect();
 
-    // generate all the possible haar-like features from the bounding boxes and the feature types
-    let mut feature_collection = HaarLikeFeature::generate_all_features();
+    let mut composition = Vec::new();
 
-    let mut ensemble = PredictionEnsemble::new();
-
-    for t in 0..NUM_ROUNDS {
+    for t in 0..num_rounds {
         println!("Begun round: {}", t + 1);
 
         // normalize weights
@@ -119,7 +126,7 @@ fn adaboost(image_collection: &Vec<DataPoint>,
         let mut h = weak_learner(&mut feature_collection, image_collection, &weights);
 
         let label_prediction_tuples: Vec<_> = image_collection.iter()
-            .map(|data_point| (data_point.label, h.predict(data_point)))
+            .map(|data_point| (data_point.label, h.predict(&data_point.integral_image)))
             .collect();
 
         let epsilon = label_prediction_tuples.iter()
@@ -136,14 +143,7 @@ fn adaboost(image_collection: &Vec<DataPoint>,
 
         println!("h({}) = {:?}", t + 1, h);
 
-        ensemble.push(h);
-
-        /*
-        weights = label_prediction_tuples.iter()
-            .zip(weights.iter())
-            .map(|(&(label, prediction), weight)| weight * (-w * label * prediction).exp())
-            .collect();
-        */
+        composition.push(h);
 
         weights = label_prediction_tuples.iter()
             .zip(weights.iter())
@@ -157,13 +157,41 @@ fn adaboost(image_collection: &Vec<DataPoint>,
             .collect();
 
         println!("Finished round: {}", t + 1);
-        ensemble.print_mistakes(&image_collection);
     }
 
-    ensemble
+    composition
 }
 
 fn main() {
-    let (image_collection, num_faces, num_non_faces) = get_training_data();
-    adaboost(&image_collection, num_faces, num_non_faces);
+    let (mut image_collection, num_faces, num_non_faces) = get_training_data();
+
+    // generate all the possible haar-like features from the bounding boxes and the feature types
+    let mut feature_collection = HaarLikeFeature::generate_all_features();
+
+    let rounds: Vec<usize> = vec![1, 10, 25, 25, 50, 50, 100];
+
+    let mut ensemble = PredictionEnsemble::new();
+
+    for (i, num_rounds) in rounds.into_iter().enumerate() {
+        // shuffle data to introduce randomness
+        {
+
+            let slice = image_collection.as_mut_slice();
+            thread_rng().shuffle(slice);
+        }
+
+        let composition = adaboost(num_rounds,
+                                   &mut feature_collection,
+                                   &image_collection,
+                                   num_faces,
+                                   num_non_faces);
+
+        ensemble.push(composition);
+        println!("Finished layer {:?}", i + 1);
+    }
+
+    let serialized = serde_json::to_string(&ensemble).unwrap();
+
+    let mut f = File::create("foo.json").expect("Unable to create file");
+    f.write_all(serialized.as_bytes()).expect("Unable to write data");
 }

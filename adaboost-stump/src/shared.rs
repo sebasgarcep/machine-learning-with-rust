@@ -5,7 +5,6 @@ pub const WINDOW_HEIGHT: usize = 19;
 pub const WINDOW_WIDTH: usize = 19;
 pub const MIN_FEATURE_HEIGHT: usize = 4;
 pub const MIN_FEATURE_WIDTH: usize = 4;
-pub const NUM_ROUNDS: usize = 200;
 
 pub type ImageData = Matrix<f64>;
 pub type Label = f64;

@@ -2,5 +2,4 @@
 
 ### To run:
 ```bash
-cargo run --release
-```
+cargo run --bin train --release
