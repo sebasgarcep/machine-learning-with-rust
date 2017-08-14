@@ -1,6 +1,7 @@
 use rulinalg::matrix::{BaseMatrix, Matrix};
 use shared::ImageData;
 
+#[derive(Debug)]
 pub struct IntegralImage {
     data: Matrix<f64>,
 }

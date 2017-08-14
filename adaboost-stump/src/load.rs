@@ -2,30 +2,42 @@ use std::fs;
 use rand::{thread_rng, Rng};
 use shared::{DataPoint, ImageData};
 use rulinalg::matrix::Matrix;
-use image::{DynamicImage, ImageBuffer, Pixel, Rgba};
+use image::{DynamicImage, Pixel, GrayImage};
 use integral_image::IntegralImage;
 
-type PreprocessedImage = ImageBuffer<Rgba<u8>, Vec<u8>>;
+type PreprocessedImage = GrayImage;
 
-// FIXME: try with max instead of 255
 fn get_luminosity_from_image(img: &PreprocessedImage, i: u32, j: u32) -> f64 {
     let channels = img.get_pixel(i, j).channels();
-    let r = channels[0] as f64;
-    let g = channels[1] as f64;
-    let b = channels[2] as f64;
 
-    (r + g + b) / (255.0 * 3.0)
+    channels[0] as f64
 }
 
-// FIXME: try with max instead of 255
 fn get_luminosity_matrix(img: &PreprocessedImage) -> ImageData {
     let (width, height) = img.dimensions();
     let mut mat = Matrix::zeros(height as usize, width as usize);
 
+    let mut max = 1.0;
+
     for i in 0..height {
         for j in 0..width {
             let index = [i as usize, j as usize];
-            mat[index] = get_luminosity_from_image(img, i, j);
+            let value = get_luminosity_from_image(img, i, j);
+
+            mat[index] = value;
+
+            if value > max {
+                max = value;
+            }
+        }
+    }
+
+    for i in 0..height {
+        for j in 0..width {
+            let index = [i as usize, j as usize];
+            let value = mat[index] / max;
+
+            mat[index] = value;
         }
     }
 
@@ -48,12 +60,12 @@ pub fn get_training_data() -> (Vec<DataPoint>, usize, usize) {
 
             let img_path = path.unwrap().path();
 
-            let rgba_image = match image::open(img_path).unwrap() {
-                DynamicImage::ImageRgba8(rgba_image) => rgba_image,
+            let gray_image = match image::open(img_path.clone()).unwrap() {
+                DynamicImage::ImageLuma8(gray_image) => gray_image,
                 _ => unreachable!(),
             };
 
-            let image_data = get_luminosity_matrix(&rgba_image);
+            let image_data = get_luminosity_matrix(&gray_image);
 
             let integral_image = IntegralImage::build(&image_data);
 
